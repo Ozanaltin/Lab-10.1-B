@@ -9,57 +9,59 @@ import android.os.AsyncTask;
 import android.support.annotation.NonNull;
 
 /**
- * This is the backend. The database. This used to be done by the OpenHelper.
- * The fact that this has very few comments emphasizes its coolness.
+ * WordRoomDatabase. Includes code to create the database.
+ * After the app creates the database, all further interactions
+ * with it happen through the WordViewModel.
  */
 
-@Database(entities = {Word.class}, version = 1,  exportSchema = false)
+@Database(entities = {Word.class}, version = 1, exportSchema = false)
 public abstract class WordRoomDatabase extends RoomDatabase {
 
     public abstract WordDao wordDao();
 
     private static WordRoomDatabase INSTANCE;
 
-    static WordRoomDatabase getDatabase(final Context context) {
+    public static WordRoomDatabase getDatabase(final Context context) {
         if (INSTANCE == null) {
             synchronized (WordRoomDatabase.class) {
                 if (INSTANCE == null) {
+                    // Create database here
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             WordRoomDatabase.class, "word_database")
                             // Wipes and rebuilds instead of migrating if no Migration object.
-                            // Migration is not part of this codelab.
+                            // Migration is not part of this practical.
                             .fallbackToDestructiveMigration()
                             .addCallback(sRoomDatabaseCallback)
                             .build();
+
                 }
             }
         }
         return INSTANCE;
     }
 
-    /**
-     * Override the onOpen method to populate the database.
-     * For this sample, we clear the database every time it is created or opened.
-     */
-    private static RoomDatabase.Callback sRoomDatabaseCallback = new RoomDatabase.Callback(){
+    // This callback is called when the database has opened.
+    // In this case, use PopulateDbAsync to populate the database
+    // with the initial data set if the database has no entries.
+    private static RoomDatabase.Callback sRoomDatabaseCallback =
+            new RoomDatabase.Callback(){
 
-        @Override
-        public void onOpen (@NonNull SupportSQLiteDatabase db){
-            super.onOpen(db);
-            // If you want to keep the data through app restarts,
-            // comment out the following line.
-            new PopulateDbAsync(INSTANCE).execute();
-        }
-    };
+                @Override
+                public void onOpen (@NonNull SupportSQLiteDatabase db){
+                    super.onOpen(db);
+                    new PopulateDbAsync(INSTANCE).execute();
+                }
+            };
 
-    /**
-     * Populate the database in the background.
-     * If you want to start with more words, just add them.
-     */
+    // Populate the database with the initial data set
+    // only if the database has no entries.
     private static class PopulateDbAsync extends AsyncTask<Void, Void, Void> {
 
         private final WordDao mDao;
-        String [] words = {"dolphin", "crocodile", "cobra"};
+
+        // Initial data set
+        private static String [] words = {"dolphin", "crocodile", "cobra", "elephant", "goldfish",
+                "tiger", "snake"};
 
         PopulateDbAsync(WordRoomDatabase db) {
             mDao = db.wordDao();
@@ -67,13 +69,12 @@ public abstract class WordRoomDatabase extends RoomDatabase {
 
         @Override
         protected Void doInBackground(final Void... params) {
-            // Start the app with a clean database every time.
-            // Not needed if you only populate on creation.
-            mDao.deleteAll();
-
-            for( int i = 0; i <= words.length - 1; i++) {
-                Word word = new Word(words[i]);
-                mDao.insert(word);
+            // If we have no words, then create the initial list of words
+            if (mDao.getAnyWord().length < 1) {
+                for (int i = 0; i <= words.length - 1; i++) {
+                    Word word = new Word(words[i]);
+                    mDao.insert(word);
+                }
             }
             return null;
         }

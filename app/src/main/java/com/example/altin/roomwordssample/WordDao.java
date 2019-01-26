@@ -2,34 +2,37 @@ package com.example.altin.roomwordssample;
 
 import android.arch.lifecycle.LiveData;
 import android.arch.persistence.room.Dao;
+import android.arch.persistence.room.Delete;
 import android.arch.persistence.room.Insert;
 import android.arch.persistence.room.OnConflictStrategy;
 import android.arch.persistence.room.Query;
 
+import com.example.altin.roomwordssample.Word;
+
 import java.util.List;
 
 /**
- * The Room Magic is in this file, where you map a Java method call to an SQL query.
- *
- * When you are using complex data types, such as Date, you have to also supply type converters.
- * To keep this example basic, no types that require type converters are used.
- * See the documentation at
- * https://developer.android.com/topic/libraries/architecture/room.html#type-converters
+ * Data Access Object (DAO) for a word.
+ * Each method performs a database operation, such as inserting or deleting a word,
+ * running a DB query, or deleting all words.
  */
 
 @Dao
 public interface WordDao {
 
-    // LiveData is a data holder class that can be observed within a given lifecycle.
-    // Always holds/caches latest version of data. Notifies its active observers when the
-    // data has changed. Since we are getting all the contents of the database,
-    // we are notified whenever any of the database contents have changed.
-    @Query("SELECT * from word_table ORDER BY word ASC")
-    LiveData<List<Word>> getAlphabetizedWords();
-
-    @Insert (onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     void insert(Word word);
 
     @Query("DELETE FROM word_table")
     void deleteAll();
+
+    @Delete
+    void deleteWord(Word word);
+
+    @Query("SELECT * from word_table LIMIT 1")
+    Word[] getAnyWord();
+
+    @Query("SELECT * from word_table ORDER BY word ASC")
+    LiveData<List<Word>> getAllWords();
+
 }
